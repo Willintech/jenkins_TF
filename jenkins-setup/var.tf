@@ -5,12 +5,6 @@ variable aws_region {
 }
 
 
-variable aws_instance_type {
-  description = "This is aws ec2 type "
-  default = "t2.medium"
-  type        = string
-}
-
 variable "profile" {
   description = "user account to use"
   default = "default"
