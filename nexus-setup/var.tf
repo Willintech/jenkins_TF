@@ -4,7 +4,6 @@ variable aws_region {
   type        = string
 }
 
-
 variable aws_instance_type {
   description = "This is aws ec2 type "
   default = "t2.medium"

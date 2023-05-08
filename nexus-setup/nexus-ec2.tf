@@ -8,31 +8,21 @@ provider "aws" {
 resource "aws_default_vpc" "default_vpc" {
 }
 
-# use data source to get all avalablility zones in region
-data "aws_availability_zones" "available_zones" {}
-
-# create default subnet if one does not exit
-resource "aws_default_subnet" "default_az1" {
-  availability_zone = data.aws_availability_zones.available_zones.names[0]
-  tags   = {
-    Name = "utrains default subnet"
-  }
-}
-
 # create security group for the ec2 instance
-resource "aws_security_group" "jenkins_ec2_security_group" {
-  name        = "ec2 jenkins security group"
-  description = "allow access on ports 8080 and 22"
+resource "aws_security_group" "nexus_ec2_security_group" {
+  name        = "ec2 nexus security group"
+  description = "allow access on ports 8081 and 22"
   vpc_id      = aws_default_vpc.default_vpc.id
 
-  # allow access on port 8080 for Jenkins Server
+  # allow access on port 8081 for nexus Server
   ingress {
     description      = "http proxy access"
-    from_port        = 8080
-    to_port          = 8080
+    from_port        = 8081
+    to_port          = 8081
     protocol         = "tcp"
     cidr_blocks      = ["0.0.0.0/0"]
   }
+
   # allow access on port 22 ssh connection
   ingress {
     description      = "ssh access"
@@ -50,7 +40,7 @@ resource "aws_security_group" "jenkins_ec2_security_group" {
   }
 
   tags   = {
-    Name = "utrains jenkins server security group"
+    Name = "utrains Nexus server security group"
   }
 }
 
@@ -70,33 +60,21 @@ data "aws_ami" "amazon_linux_2" {
   }
 }
 
-# launch the ec2 instance and install jenkis
+# launch the ec2 instance and install nexus
 resource "aws_instance" "ec2_instance" {
   ami                    = data.aws_ami.amazon_linux_2.id
   instance_type          = var.aws_instance_type
-  subnet_id              = aws_default_subnet.default_az1.id
-  vpc_security_group_ids = [aws_security_group.jenkins_ec2_security_group.id]
-  key_name               = aws_key_pair.jenkins_key.key_name
-  user_data            = file("installjenkins.sh")
-  # Set the instance's root volume to 30 GB
-  root_block_device {
-    volume_size = 30
-  }
-
-  # Attach an additional 30 GB EBS volume
-  ebs_block_device {
-    device_name = "/dev/xvdf"
-    volume_size = 30
-    volume_type = "gp2"
-  }
-
+  vpc_security_group_ids = [aws_security_group.nexus_ec2_security_group.id]
+  key_name               = aws_key_pair.nexus_key.key_name
+  # user_data            = file("install-nexus.sh")
 
   tags = {
-    Name = "utrains Jenkins Server and ssh security group"
+    Name = "Nexus-server"
+    owner = "Hermann90"
   }
 }
 
-# an empty resource block
+# an empty resource block : Here we can connect to the server to run some bash commands that will allow us to install nexus.
 resource "null_resource" "name" {
 
   # ssh into the ec2 instance 
@@ -106,6 +84,31 @@ resource "null_resource" "name" {
     private_key = file(local_file.ssh_key.filename)
     host        = aws_instance.ec2_instance.public_ip
   }
+
+
+  # set permissions and run the  file
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum update -y",
+
+      ## Install Java 8:
+      "sudo yum install java-1.8.0-openjdk -y",
+
+      # download the latest version of nexus
+      "sudo wget https://download.sonatype.com/nexus/3/nexus-3.45.0-01-unix.tar.gz",
+
+      "sudo yum upgrade -y",
+      # Extract the downloaded archive file
+      "tar -xvzf nexus-3.45.0-01-unix.tar.gz",
+      "rm -f nexus-3.45.0-01-unix.tar.gz",
+      "sudo mv nexus-3.45.0-01 nexus",
+
+      # Start Nexus and check status
+      "sh ~/nexus/bin/nexus start",
+      "sh ~/nexus/bin/nexus status",
+        ]
+  }
+
   # wait for ec2 to be created
   depends_on = [aws_instance.ec2_instance]
 }
