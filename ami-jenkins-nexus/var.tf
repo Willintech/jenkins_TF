@@ -8,11 +8,11 @@ variable "profile" {
   default = "default"
 }
 variable "jenkins_ami" {
- descdescription = "Jenkins ami" 
+ description = "Jenkins ami" 
  default = ""
 }
 variable "nexus_ami" {
- descdescription = "nexus ami" 
+ description = "nexus ami" 
  default = ""
 }
 variable aws_instance_type {
