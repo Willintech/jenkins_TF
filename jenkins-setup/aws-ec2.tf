@@ -92,7 +92,7 @@ resource "aws_instance" "ec2_instance" {
 
 
   tags = {
-    Name = "utrains Jenkins Server and ssh security group"
+    Name = "Jenkins-server"
   }
 }
 
