@@ -50,7 +50,7 @@ resource "aws_security_group" "jenkins_ec2_security_group" {
   }
 
   tags   = {
-    Name = "utrains jenkins server security group"
+    Name = "SBS jenkins server security group"
   }
 }
 
